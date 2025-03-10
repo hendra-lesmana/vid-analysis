@@ -69,5 +69,5 @@ export default function VideoAnalysis({ result }: VideoAnalysisProps) {
         </pre>
       </div>
     </div>
-  );
-);  }
+  );  
+}

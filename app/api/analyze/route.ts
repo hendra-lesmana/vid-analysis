@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { YoutubeTranscript } from 'youtube-transcript';
-import { analyzeTranscript } from '@/app/utils/gemini';
+import { llmService } from '@/app/utils/llm-service';
 import { extractVideoId } from '@/app/utils/youtube';
 
 export async function POST(request: Request) {
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
       .join(' ');
 
     // Analyze transcript using Gemini AI
-    const analysis = await analyzeTranscript(transcriptText);
+    const analysis = await llmService.analyzeTranscript(transcriptText);
 
     return NextResponse.json({
       analysis
