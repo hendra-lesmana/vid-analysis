@@ -17,14 +17,11 @@ export class GeminiProvider implements LLMProvider {
 
   async analyzeTranscript(transcript: string): Promise<string> {
     try {
-      const messages = [
-        {
-          role: "system",
-          content: "You are an expert analyst who analyzes video transcripts."
-        },
-        {
-          role: "user",
-          content: `Analyze the following YouTube video transcript and provide:
+      // Gemini API doesn't use role-based messages like OpenAI
+      // Instead, it uses a different format for system and user messages
+      const systemPrompt = "You are an expert analyst who analyzes video transcripts.";
+      
+      const userPrompt = `Analyze the following YouTube video transcript and provide:
 1. What the video is about (core topic/subject)
 2. 3-5 key points or insights from the video
 3. A concise summary (2-3 paragraphs)
@@ -36,16 +33,24 @@ Format your response as JSON with the following structure:
   "summary": "Concise summary of the video content"
 }
 
-Here is the transcript: ${transcript}`
-        }
-      ];
+Here is the transcript: ${transcript}`;
 
+      // Use the correct format for Gemini API
       const result = await this.model.generateContent({
-        contents: messages,
+        contents: [
+          {
+            role: "user",
+            parts: [
+              { text: systemPrompt },
+              { text: userPrompt }
+            ]
+          }
+        ],
         generationConfig: {
           temperature: 0.7
         }
       });
+      
       const response = await result.response;
       return response.text();
     } catch (error) {
