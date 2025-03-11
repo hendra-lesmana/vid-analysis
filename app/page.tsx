@@ -128,7 +128,7 @@ export default function Home() {
             <div className="prose dark:prose-invert max-w-none">
               <h2 className="text-2xl font-bold mb-4">{t('analysis.title')}</h2>
               {/* Use VideoAnalysis component instead of raw JSON display */}
-              <VideoAnalysis result={analysis.result} />
+              <VideoAnalysis result={analysis.result} isLoading={analysis.isLoading} />
             </div>
           </div>
         )}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import AnalysisSkeleton from './AnalysisSkeleton';
 import { useLanguage } from '../context/LanguageContext';
 
 interface AnalysisData {
@@ -11,9 +12,10 @@ interface AnalysisData {
 
 interface VideoAnalysisProps {
   result: any;
+  isLoading?: boolean;
 }
 
-export default function VideoAnalysis({ result }: VideoAnalysisProps) {
+export default function VideoAnalysis({ result, isLoading = false }: VideoAnalysisProps) {
   const { t } = useLanguage();
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -224,7 +226,9 @@ export default function VideoAnalysis({ result }: VideoAnalysisProps) {
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 w-full">
-        {parseError ? (
+        {isLoading ? (
+          <AnalysisSkeleton />
+        ) : parseError ? (
           <div className="space-y-4">
             <h3 className="text-xl font-semibold text-red-600 dark:text-red-400">{t('analysis.error.title')}</h3>
             <p className="text-gray-700 dark:text-gray-300 mb-4">{t('analysis.error.description')}</p>
