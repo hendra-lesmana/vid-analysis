@@ -65,15 +65,42 @@ export default function VideoAnalysis({ result }: VideoAnalysisProps) {
       
       if (typeof result === 'string') {
         try {
-          // Try to parse as JSON string
-          analysisData = JSON.parse(result);
+          // First, remove any markdown code block markers that might be present
+          let cleanResult = result.trim();
+          // Remove markdown code block markers (```json or ``` at start and end)
+          cleanResult = cleanResult.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
+          
+          // Try to parse as JSON string with proper handling of escaped characters
+          // First, sanitize the string to handle any problematic escape sequences
+          const sanitizedResult = cleanResult
+            .replace(/\\(?!["\\bfnrt\/])/g, '\\\\') // Double escape backslashes that aren't part of valid escape sequences
+            .replace(/[\u0000-\u001F]/g, '') // Remove control characters
+            .replace(/\\'/g, "'") // Replace escaped single quotes with regular single quotes
+            .replace(/\\\\n/g, '\\n') // Fix double escaped newlines
+            .replace(/\\\\r/g, '\\r') // Fix double escaped carriage returns
+            .replace(/\\\\t/g, '\\t'); // Fix double escaped tabs
+          
+          analysisData = JSON.parse(sanitizedResult);
         } catch (parseError) {
           console.error('Initial JSON parsing error:', parseError);
           // If it's not valid JSON, check if it might be a string that contains JSON
-          const jsonMatch = result.match(/\{[\s\S]*\}/); // Find content between curly braces
+          // Use a more robust regex to find JSON objects
+          const jsonMatch = result.match(/\{[\s\S]*?\}(?=[^\}]*$)/); // Find content between outermost curly braces
           if (jsonMatch) {
             try {
-              analysisData = JSON.parse(jsonMatch[0]);
+              // Sanitize the extracted JSON string
+              const sanitizedJson = jsonMatch[0]
+                .replace(/\\(?!["\\bfnrt\/])/g, '\\\\') // Double escape backslashes that aren't part of valid escape sequences
+                .replace(/[\u0000-\u001F]/g, '') // Remove control characters
+                .replace(/(["'])(?:(?=(\\?))\2.)*?\1/g, (match) => { // Fix strings
+                  return match
+                    .replace(/\\'/g, "'") // Replace escaped single quotes
+                    .replace(/\\\\n/g, '\\n') // Fix double escaped newlines
+                    .replace(/\\\\r/g, '\\r') // Fix double escaped carriage returns
+                    .replace(/\\\\t/g, '\\t'); // Fix double escaped tabs
+                });
+              
+              analysisData = JSON.parse(sanitizedJson);
             } catch (extractError) {
               console.error('JSON extraction error:', extractError);
               return { 
