@@ -6,6 +6,7 @@ import ThemeToggle from './components/ThemeToggle';
 import LanguageToggle from './components/LanguageToggle';
 import SaveButton from './components/SaveButton';
 import VideoAnalysis from './components/VideoAnalysis';
+import DynamicTitle from './components/DynamicTitle';
 import { useLanguage } from './context/LanguageContext';
 
 type AnalysisState = {
@@ -65,6 +66,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
+      <DynamicTitle />
       <header className="border-b border-gray-200 dark:border-gray-800">
         <div className="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex gap-2">
