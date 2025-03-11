@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { extractVideoId } from '@/app/utils/youtube';
 import ThemeToggle from './components/ThemeToggle';
 import SaveButton from './components/SaveButton';
+import VideoAnalysis from './components/VideoAnalysis';
 
 type AnalysisState = {
   isLoading: boolean;
@@ -120,12 +121,8 @@ export default function Home() {
             </div>
             <div className="prose dark:prose-invert max-w-none">
               <h2 className="text-2xl font-bold mb-4">Analysis Result</h2>
-              <div className="whitespace-pre-wrap font-mono text-sm bg-gray-50 dark:bg-gray-800/50 p-6 rounded-lg">
-                {analysis.result}
-              </div>
-              <div className="flex justify-center mt-5">
-                <SaveButton result={analysis.result} />
-              </div>
+              {/* Use VideoAnalysis component instead of raw JSON display */}
+              <VideoAnalysis result={analysis.result} />
             </div>
           </div>
         )}

@@ -4,7 +4,7 @@ interface LLMProvider {
   analyzeTranscript(transcript: string): Promise<string>;
 }
 
-class GeminiProvider implements LLMProvider {
+export class GeminiProvider implements LLMProvider {
   private model: any;
 
   constructor() {
@@ -17,15 +17,35 @@ class GeminiProvider implements LLMProvider {
 
   async analyzeTranscript(transcript: string): Promise<string> {
     try {
-      const prompt = `Analyze this YouTube video transcript and provide a concise summary that includes:
-1. The main topic/subject of the video
-2. Key points and important insights
-3. Main takeaways and learnings
+      const messages = [
+        {
+          role: "system",
+          content: "You are an expert analyst who analyzes video transcripts."
+        },
+        {
+          role: "user",
+          content: `Analyze the following YouTube video transcript and provide:
+1. What the video is about (core topic/subject)
+2. 3-5 key points or insights from the video
+3. A concise summary (2-3 paragraphs)
 
-Transcript:
-${transcript}`;
+Format your response as JSON with the following structure:
+{
+  "topic": "Core topic of the video",
+  "keyPoints": ["Key point 1", "Key point 2", "Key point 3", "Key point 4", "Key point 5"],
+  "summary": "Concise summary of the video content"
+}
 
-      const result = await this.model.generateContent(prompt);
+Here is the transcript: ${transcript}`
+        }
+      ];
+
+      const result = await this.model.generateContent({
+        contents: messages,
+        generationConfig: {
+          temperature: 0.7
+        }
+      });
       const response = await result.response;
       return response.text();
     } catch (error) {
@@ -51,14 +71,6 @@ class OpenRouterProvider implements LLMProvider {
 
   async analyzeTranscript(transcript: string): Promise<string> {
     try {
-      const prompt = `Analyze this YouTube video transcript and provide a concise summary that includes:
-1. The main topic/subject of the video
-2. Key points and important insights
-3. Main takeaways and learnings
-
-Transcript:
-${transcript}`;
-
       const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -71,10 +83,28 @@ ${transcript}`;
           model: 'deepseek/deepseek-r1:free',
           messages: [
             {
-              role: 'user',
-              content: prompt
+              role: "system",
+              content: "You are an expert analyst who analyzes video transcripts."
+            },
+            {
+              role: "user",
+              content: `Analyze the following YouTube video transcript and provide:
+1. What the video is about (core topic/subject)
+2. 3-5 key points or insights from the video
+3. A concise summary (2-3 paragraphs)
+
+Format your response as JSON with the following structure:
+{
+  "topic": "Core topic of the video",
+  "keyPoints": ["Key point 1", "Key point 2", "Key point 3", "Key point 4", "Key point 5"],
+  "summary": "Concise summary of the video content"
+}
+
+Here is the transcript: ${transcript}`
             }
-          ]
+          ],
+          temperature: 0.7,
+          response_format: { type: "json_object" }
         })
       });
 
