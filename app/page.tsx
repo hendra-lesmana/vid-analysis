@@ -3,8 +3,10 @@
 import { useState, useEffect } from 'react';
 import { extractVideoId } from '@/app/utils/youtube';
 import ThemeToggle from './components/ThemeToggle';
+import LanguageToggle from './components/LanguageToggle';
 import SaveButton from './components/SaveButton';
 import VideoAnalysis from './components/VideoAnalysis';
+import { useLanguage } from './context/LanguageContext';
 
 type AnalysisState = {
   isLoading: boolean;
@@ -14,6 +16,7 @@ type AnalysisState = {
 };
 
 export default function Home() {
+  const { t } = useLanguage();
   const [url, setUrl] = useState('');
   const [analysis, setAnalysis] = useState<AnalysisState>({
     isLoading: false,
@@ -26,7 +29,7 @@ export default function Home() {
     e.preventDefault();
     
     if (!url.trim()) {
-      setAnalysis(prev => ({ ...prev, error: 'Please enter a YouTube URL' }));
+      setAnalysis(prev => ({ ...prev, error: t('app.error.url') }));
       return;
     }
 
@@ -40,7 +43,7 @@ export default function Home() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to analyze video');
+        throw new Error(t('app.error.analysis'));
       }
 
       const data = await response.json();
@@ -64,16 +67,19 @@ export default function Home() {
     <div className="min-h-screen bg-white dark:bg-gray-900">
       <header className="border-b border-gray-200 dark:border-gray-800">
         <div className="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
-          <ThemeToggle />
+          <div className="flex gap-2">
+            <ThemeToggle />
+            <LanguageToggle />
+          </div>
         </div>
       </header>
       <main className="max-w-5xl mx-auto px-4 py-12 sm:py-16">
         <div className="text-center space-y-4 mb-10">
           <h1 className="text-4xl sm:text-5xl font-bold text-gray-800 dark:text-gray-100 tracking-tight">
-            Video Summary AI
+            {t('app.title')}
           </h1>
           <div className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto font-light">
-            Get an instant AI-powered summary of any YouTube video
+            {t('app.description')}
           </div>
         </div>
 
@@ -88,7 +94,7 @@ export default function Home() {
               type="text"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="Paste YouTube URL here"
+              placeholder={t('app.input.placeholder')}
               className="w-full pl-14 pr-12 py-5 text-lg font-medium rounded-xl border border-gray-200 dark:border-gray-700
                 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900/30 transition-all duration-200"
             />
@@ -98,7 +104,7 @@ export default function Home() {
             disabled={analysis.isLoading}
             className="mt-6 w-full px-8 py-4 text-lg font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {analysis.isLoading ? 'Analyzing...' : 'Analyze Video'}
+            {analysis.isLoading ? t('app.button.analyzing') : t('app.button.analyze')}
           </button>
         </form>
 
@@ -120,7 +126,7 @@ export default function Home() {
               />
             </div>
             <div className="prose dark:prose-invert max-w-none">
-              <h2 className="text-2xl font-bold mb-4">Analysis Result</h2>
+              <h2 className="text-2xl font-bold mb-4">{t('analysis.title')}</h2>
               {/* Use VideoAnalysis component instead of raw JSON display */}
               <VideoAnalysis result={analysis.result} />
             </div>

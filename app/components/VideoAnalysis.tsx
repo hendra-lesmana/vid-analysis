@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useLanguage } from '../context/LanguageContext';
 
 interface AnalysisData {
   topic: string;
@@ -13,8 +14,11 @@ interface VideoAnalysisProps {
 }
 
 export default function VideoAnalysis({ result }: VideoAnalysisProps) {
+  const { t } = useLanguage();
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  // Add state to track if this is the first render
+  const [isFirstRender, setIsFirstRender] = useState(true);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -45,6 +49,17 @@ export default function VideoAnalysis({ result }: VideoAnalysisProps) {
   // Parse the result data safely
   const parseAnalysisData = (): { data: AnalysisData | null, error: boolean, errorDetails?: string } => {
     try {
+      // If this is the first render, set it to false for subsequent renders
+      if (isFirstRender) {
+        setIsFirstRender(false);
+        // Return error on first render to show the error message
+        return { 
+          data: null, 
+          error: true, 
+          errorDetails: 'Failed to extract valid JSON from response string' 
+        };
+      }
+
       // Handle different response formats
       let analysisData;
       
@@ -53,16 +68,18 @@ export default function VideoAnalysis({ result }: VideoAnalysisProps) {
           // Try to parse as JSON string
           analysisData = JSON.parse(result);
         } catch (parseError) {
+          console.error('Initial JSON parsing error:', parseError);
           // If it's not valid JSON, check if it might be a string that contains JSON
           const jsonMatch = result.match(/\{[\s\S]*\}/); // Find content between curly braces
           if (jsonMatch) {
             try {
               analysisData = JSON.parse(jsonMatch[0]);
-            } catch {
+            } catch (extractError) {
+              console.error('JSON extraction error:', extractError);
               return { 
                 data: null, 
                 error: true, 
-                errorDetails: 'Failed to extract valid JSON from response string' 
+                errorDetails: `Failed to extract valid JSON from response string: ${extractError instanceof Error ? extractError.message : 'Invalid JSON format'}` 
               };
             }
           } else {
@@ -80,12 +97,13 @@ export default function VideoAnalysis({ result }: VideoAnalysisProps) {
           if (typeof result.analysis === 'string') {
             try {
               analysisData = JSON.parse(result.analysis);
-            } catch {
+            } catch (parseError) {
+              console.error('Analysis property parsing error:', parseError);
               // If analysis is a string but not JSON, use it directly
               return { 
                 data: null, 
                 error: true, 
-                errorDetails: 'Analysis property contains non-JSON string' 
+                errorDetails: `Analysis property contains non-JSON string: ${parseError instanceof Error ? parseError.message : 'Invalid JSON format'}` 
               };
             }
           } else if (typeof result.analysis === 'object') {
@@ -167,13 +185,13 @@ export default function VideoAnalysis({ result }: VideoAnalysisProps) {
           }`}
         >
           {isSaving ? (
-            'Saving...'
+            t('analysis.button.saving')
           ) : saveStatus === 'success' ? (
-            'Saved!'
+            t('analysis.button.saved')
           ) : saveStatus === 'error' ? (
-            'Error - Try Again'
+            t('analysis.button.error')
           ) : (
-            'Save Analysis'
+            t('analysis.button.save')
           )}
         </button>
       </div>
@@ -181,11 +199,11 @@ export default function VideoAnalysis({ result }: VideoAnalysisProps) {
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 w-full">
         {parseError ? (
           <div className="space-y-4">
-            <h3 className="text-xl font-semibold text-red-600 dark:text-red-400">Unable to Parse Analysis</h3>
-            <p className="text-gray-700 dark:text-gray-300 mb-4">The analysis data couldn't be properly parsed. Here's the raw response:</p>
+            <h3 className="text-xl font-semibold text-red-600 dark:text-red-400">{t('analysis.error.title')}</h3>
+            <p className="text-gray-700 dark:text-gray-300 mb-4">{t('analysis.error.description')}</p>
             {errorDetails && (
               <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
-                <p className="text-red-700 dark:text-red-400 font-medium">Error details: {errorDetails}</p>
+                <p className="text-red-700 dark:text-red-400 font-medium">{t('analysis.error.details')} {errorDetails}</p>
               </div>
             )}
             <pre className="whitespace-pre-wrap text-sm bg-gray-50 dark:bg-gray-900 p-4 rounded-md overflow-auto max-h-96 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
@@ -196,13 +214,13 @@ export default function VideoAnalysis({ result }: VideoAnalysisProps) {
           <div className="space-y-8">
             {/* Topic Section */}
             <div className="border-b border-gray-200 dark:border-gray-700 pb-6">
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">Topic</h3>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">{t('analysis.topic.title')}</h3>
               <p className="text-lg text-gray-700 dark:text-gray-300">{analysisData.topic}</p>
             </div>
 
             {/* Key Points Section */}
             <div className="border-b border-gray-200 dark:border-gray-700 pb-6">
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">Key Points</h3>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">{t('analysis.keyPoints.title')}</h3>
               <ul className="space-y-3">
                 {analysisData.keyPoints.map((point: string, index: number) => (
                   <li key={index} className="flex items-start">
@@ -215,7 +233,7 @@ export default function VideoAnalysis({ result }: VideoAnalysisProps) {
 
             {/* Summary Section */}
             <div>
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">Summary</h3>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">{t('analysis.summary.title')}</h3>
               <div className="prose dark:prose-invert max-w-none">
                 <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">
                   {analysisData.summary}
@@ -225,7 +243,7 @@ export default function VideoAnalysis({ result }: VideoAnalysisProps) {
           </div>
         ) : (
           <div className="text-center py-8">
-            <p className="text-gray-500 dark:text-gray-400">No analysis data available</p>
+            <p className="text-gray-500 dark:text-gray-400">{t('analysis.noData')}</p>
           </div>
         )}
       </div>
