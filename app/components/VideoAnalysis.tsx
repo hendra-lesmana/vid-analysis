@@ -54,11 +54,10 @@ export default function VideoAnalysis({ result, isLoading = false }: VideoAnalys
       // If this is the first render, set it to false for subsequent renders
       if (isFirstRender) {
         setIsFirstRender(false);
-        // Return error on first render to show the error message
         return { 
           data: null, 
           error: true, 
-          errorDetails: 'Failed to extract valid JSON from response string' 
+          errorDetails: 'First render - waiting for data' 
         };
       }
 
@@ -67,82 +66,41 @@ export default function VideoAnalysis({ result, isLoading = false }: VideoAnalys
       
       if (typeof result === 'string') {
         try {
-          // First, remove any markdown code block markers that might be present
+          // First, try to parse directly
+          analysisData = JSON.parse(result);
+        } catch (initialError) {
+          // If direct parsing fails, try to clean and parse
           let cleanResult = result.trim();
-          // Remove markdown code block markers (```json or ``` at start and end)
+          
+          // Remove markdown code block markers
           cleanResult = cleanResult.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
           
-          // Try to parse as JSON string with proper handling of escaped characters
-          // First, sanitize the string to handle any problematic escape sequences
-          const sanitizedResult = cleanResult
-            .replace(/\\(?!["\\bfnrt\/])/g, '\\\\') // Double escape backslashes that aren't part of valid escape sequences
+          // Fix common JSON syntax issues
+          cleanResult = cleanResult
+            .replace(/([{,])\s*(\w+)\s*:/g, '$1"$2":') // Ensure property names are quoted
+            .replace(/:\s*'([^']*)'\s*([,}])/g, ':"$1"$2') // Convert single quotes to double quotes
+            .replace(/([\[,]\s*)'([^']*)'\s*([,\]])/g, '$1"$2"$3') // Convert single quotes in arrays
+            .replace(/\\(?!["\\bfnrt\/])/g, '\\\\') // Double escape backslashes
             .replace(/[\u0000-\u001F]/g, '') // Remove control characters
-            .replace(/\\'/g, "'") // Replace escaped single quotes with regular single quotes
+            .replace(/\\'/g, "'") // Replace escaped single quotes
             .replace(/\\\\n/g, '\\n') // Fix double escaped newlines
             .replace(/\\\\r/g, '\\r') // Fix double escaped carriage returns
-            .replace(/\\\\t/g, '\\t'); // Fix double escaped tabs
+            .replace(/\\\\t/g, '\\t') // Fix double escaped tabs
+            .replace(/,\s*([}\]])/g, '$1'); // Remove trailing commas
           
-          analysisData = JSON.parse(sanitizedResult);
-        } catch (parseError) {
-          console.error('Initial JSON parsing error:', parseError);
-          // If it's not valid JSON, check if it might be a string that contains JSON
-          // Use a more robust regex to find JSON objects
-          const jsonMatch = result.match(/\{[\s\S]*?\}(?=[^\}]*$)/); // Find content between outermost curly braces
-          if (jsonMatch) {
-            try {
-              // Sanitize the extracted JSON string
-              const sanitizedJson = jsonMatch[0]
-                .replace(/\\(?!["\\bfnrt\/])/g, '\\\\') // Double escape backslashes that aren't part of valid escape sequences
-                .replace(/[\u0000-\u001F]/g, '') // Remove control characters
-                .replace(/(["'])(?:(?=(\\?))\2.)*?\1/g, (match) => { // Fix strings
-                  return match
-                    .replace(/\\'/g, "'") // Replace escaped single quotes
-                    .replace(/\\\\n/g, '\\n') // Fix double escaped newlines
-                    .replace(/\\\\r/g, '\\r') // Fix double escaped carriage returns
-                    .replace(/\\\\t/g, '\\t'); // Fix double escaped tabs
-                });
-              
-              analysisData = JSON.parse(sanitizedJson);
-            } catch (extractError) {
-              console.error('JSON extraction error:', extractError);
-              return { 
-                data: null, 
-                error: true, 
-                errorDetails: `Failed to extract valid JSON from response string: ${extractError instanceof Error ? extractError.message : 'Invalid JSON format'}` 
-              };
-            }
-          } else {
+          try {
+            analysisData = JSON.parse(cleanResult);
+          } catch (parseError) {
+            console.error('JSON parsing error after cleaning:', parseError);
             return { 
               data: null, 
               error: true, 
-              errorDetails: 'Response is not in JSON format' 
+              errorDetails: `Invalid JSON format: ${parseError instanceof Error ? parseError.message : 'Unknown parsing error'}` 
             };
           }
         }
       } else if (result && typeof result === 'object') {
-        // Handle nested response formats (like from API responses)
-        if (result.analysis) {
-          // If the result has an analysis property (from API response)
-          if (typeof result.analysis === 'string') {
-            try {
-              analysisData = JSON.parse(result.analysis);
-            } catch (parseError) {
-              console.error('Analysis property parsing error:', parseError);
-              // If analysis is a string but not JSON, use it directly
-              return { 
-                data: null, 
-                error: true, 
-                errorDetails: `Analysis property contains non-JSON string: ${parseError instanceof Error ? parseError.message : 'Invalid JSON format'}` 
-              };
-            }
-          } else if (typeof result.analysis === 'object') {
-            // If analysis is already an object
-            analysisData = result.analysis;
-          }
-        } else {
-          // Use the result object directly
-          analysisData = result;
-        }
+        analysisData = result.analysis || result;
       } else {
         return { 
           data: null, 
@@ -151,7 +109,7 @@ export default function VideoAnalysis({ result, isLoading = false }: VideoAnalys
         };
       }
       
-      // Validate the required fields exist
+      // Validate the required fields
       if (!analysisData || typeof analysisData !== 'object') {
         return { 
           data: null, 
@@ -160,11 +118,11 @@ export default function VideoAnalysis({ result, isLoading = false }: VideoAnalys
         };
       }
       
-      if (!analysisData.topic) {
+      if (!analysisData.topic || typeof analysisData.topic !== 'string') {
         return { 
           data: null, 
           error: true, 
-          errorDetails: 'Missing required field: topic' 
+          errorDetails: 'Missing or invalid field: topic' 
         };
       }
       
@@ -176,11 +134,11 @@ export default function VideoAnalysis({ result, isLoading = false }: VideoAnalys
         };
       }
       
-      if (!analysisData.summary) {
+      if (!analysisData.summary || typeof analysisData.summary !== 'string') {
         return { 
           data: null, 
           error: true, 
-          errorDetails: 'Missing required field: summary' 
+          errorDetails: 'Missing or invalid field: summary' 
         };
       }
       
