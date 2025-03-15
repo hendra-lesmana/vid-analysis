@@ -56,6 +56,24 @@ Before you begin, ensure you have the following installed:
 
    Note: Never commit your `.env` file to version control. Add it to your `.gitignore` file to keep your API keys secure.
 
+## Deployment on Vercel
+
+1. Push your code to a Git repository (GitHub, GitLab, or Bitbucket)
+
+2. Visit [Vercel](https://vercel.com) and sign in with your Git provider
+
+3. Import your repository and configure the following environment variables in Vercel's dashboard:
+   - `GEMINI_API_KEY`
+   - `OPENROUTER_API_KEY`
+   - `LLM_PROVIDER`
+   - `SITE_URL`
+   - `SITE_NAME`
+   - `DATABASE_URL` (Use a PostgreSQL database service like Vercel Postgres)
+
+4. Deploy your application
+
+Vercel will automatically build and deploy your application. Each push to your main branch will trigger a new deployment.
+
 ## Development
 
 To start the development server:
